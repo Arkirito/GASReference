@@ -6,6 +6,8 @@
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
 #include "GameplayTagContainer.h"
+#include "GameplayEffectTypes.h"
+#include "GameplayEffect.h"
 #include "GASReferenceCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -58,6 +60,17 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "GAS")
 	FGameplayTagContainer ViewBlockingTags;
+
+	UFUNCTION()
+	void OnGameplayEffectAppliedToSelf(UAbilitySystemComponent* InAbilitySystemComponent, const FGameplayEffectSpec& EffectSpec, FActiveGameplayEffectHandle EffectHandle);
+
+	UFUNCTION()
+	void Shoot();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void ApplyDamageToTarget(AActor* Target);
+
+	void Die();
 
 protected:
 

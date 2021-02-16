@@ -22,6 +22,14 @@ void UGASR_AttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute,
 			OwningCharacter->GetCharacterMovement()->MaxWalkSpeed = NewValue;
 		}
 	}
+
+	if (Attribute == GetHealthAttribute())
+	{
+		if (NewValue < 0)
+		{
+			NewValue = 0;
+		}
+	}
 }
 
 void UGASR_AttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

@@ -11,6 +11,8 @@
 #include "AbilitySystem/GASR_AbilitySystemComponent.h"
 #include "AbilitySystem/GASR_AttributeSet.h"
 #include "AbilitySystem/GASR_GameplayAbility.h"
+#include "DrawDebugHelpers.h"
+#include "Kismet/GameplayStatics.h"
 #include <GameplayEffectTypes.h>
 
 //////////////////////////////////////////////////////////////////////////
@@ -53,6 +55,7 @@ AGASReferenceCharacter::AGASReferenceCharacter()
 	AbilitySystemComponent = CreateDefaultSubobject<UGASR_AbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
+	AbilitySystemComponent->OnGameplayEffectAppliedDelegateToSelf.AddUObject(this, &AGASReferenceCharacter::OnGameplayEffectAppliedToSelf);
 
 	AttributeSet = CreateDefaultSubobject<UGASR_AttributeSet>("AttributeSet");
 }
@@ -132,6 +135,64 @@ void AGASReferenceCharacter::OnRep_PlayerState()
 
 	AbilitySystemComponent->InitAbilityActorInfo(this, this);
 	InitializeAttributes();
+}
+
+void AGASReferenceCharacter::OnGameplayEffectAppliedToSelf(UAbilitySystemComponent* InAbilitySystemComponent, const FGameplayEffectSpec& EffectSpec, FActiveGameplayEffectHandle EffectHandle)
+{
+	if (AttributeSet->GetHealth() <= 0)
+	{
+		Die();
+	}
+}
+
+void AGASReferenceCharacter::Shoot()
+{
+	FVector ViewPoint;
+	FRotator ViewRotation;
+	UGameplayStatics::GetPlayerCameraManager(this, 0)->GetCameraViewPoint(ViewPoint, ViewRotation);
+	FVector Direction = ViewRotation.Vector();
+
+	FHitResult HitResult;
+	GetWorld()->LineTraceSingleByChannel(HitResult, ViewPoint, ViewPoint + Direction * 10000, ECollisionChannel::ECC_Camera);
+
+	FVector WeaponHitDirection = Direction;
+
+	if (HitResult.bBlockingHit)
+	{
+		WeaponHitDirection = HitResult.Location - GetActorLocation();
+
+		DrawDebugSphere(GetWorld(), HitResult.Location, 25, 16, FColor::Red, false, 1, 0, 3);
+	}
+	FHitResult WeaponHitResult;
+
+	WeaponHitDirection.Normalize();
+
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+
+	GetWorld()->LineTraceSingleByChannel(WeaponHitResult, GetActorLocation(), GetActorLocation() + WeaponHitDirection * 1000, ECollisionChannel::ECC_Camera, Params);
+
+	if (WeaponHitResult.bBlockingHit)
+	{
+		DrawDebugLine(GetWorld(), GetActorLocation(), WeaponHitResult.Location, FColor::Red, false, 1, 0, 3);
+
+		if (WeaponHitResult.Actor.Get())
+		{
+			ApplyDamageToTarget(WeaponHitResult.GetActor());
+		}
+	}
+	else
+	{
+		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + WeaponHitDirection * 2000, FColor::Yellow, false, 1, 0, 3);
+	}
+}
+
+void AGASReferenceCharacter::Die()
+{
+	GetMesh()->SetCollisionProfileName(FName(TEXT("Ragdoll")));
+	GetMesh()->SetSimulatePhysics(true);
+	GetMesh()->WakeAllRigidBodies();
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AGASReferenceCharacter::OnResetVR()
