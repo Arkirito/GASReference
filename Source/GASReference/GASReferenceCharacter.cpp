@@ -53,6 +53,8 @@ AGASReferenceCharacter::AGASReferenceCharacter()
 	AbilitySystemComponent = CreateDefaultSubobject<UGASR_AbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
+
+	AttributeSet = CreateDefaultSubobject<UGASR_AttributeSet>("AttributeSet");
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -62,8 +64,6 @@ void AGASReferenceCharacter::SetupPlayerInputComponent(class UInputComponent* Pl
 {
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &AGASReferenceCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AGASReferenceCharacter::MoveRight);
@@ -71,14 +71,10 @@ void AGASReferenceCharacter::SetupPlayerInputComponent(class UInputComponent* Pl
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
 	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
-	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("Turn", this, &AGASReferenceCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("TurnRate", this, &AGASReferenceCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("LookUp", this, &AGASReferenceCharacter::LookUpAtRate);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AGASReferenceCharacter::LookUpAtRate);
-
-	// handle touch devices
-	PlayerInputComponent->BindTouch(IE_Pressed, this, &AGASReferenceCharacter::TouchStarted);
-	PlayerInputComponent->BindTouch(IE_Released, this, &AGASReferenceCharacter::TouchStopped);
 
 	// VR headset functionality
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AGASReferenceCharacter::OnResetVR);
@@ -103,6 +99,8 @@ void AGASReferenceCharacter::InitializeAttributes()
 		{
 			FActiveGameplayEffectHandle GEHandle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 		}
+
+		GetCharacterMovement()->MaxWalkSpeed = AttributeSet->GetMaxMovementSpeed();
 	}
 }
 
@@ -147,31 +145,37 @@ void AGASReferenceCharacter::OnResetVR()
 	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
 }
 
-void AGASReferenceCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
-{
-		//Jump();
-}
-
-void AGASReferenceCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
-{
-		//StopJumping();
-}
-
 void AGASReferenceCharacter::TurnAtRate(float Rate)
 {
-	// calculate delta for this frame from the rate information
-	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+	if (!HasAnyViewBlockingTags())
+	{
+		// calculate delta for this frame from the rate information
+		AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+	}
 }
 
 void AGASReferenceCharacter::LookUpAtRate(float Rate)
 {
-	// calculate delta for this frame from the rate information
-	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+	if (!HasAnyViewBlockingTags())
+	{
+		// calculate delta for this frame from the rate information
+		AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+	}
+}
+
+bool AGASReferenceCharacter::CanMove() const
+{
+	if (AbilitySystemComponent)
+	{
+		return !AbilitySystemComponent->HasAnyMatchingGameplayTags(MovementBlockingTags);
+	}
+
+	return false;
 }
 
 void AGASReferenceCharacter::MoveForward(float Value)
 {
-	if ((Controller != nullptr) && (Value != 0.0f))
+	if ((Controller != nullptr) && (Value != 0.0f) && CanMove())
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -185,7 +189,7 @@ void AGASReferenceCharacter::MoveForward(float Value)
 
 void AGASReferenceCharacter::MoveRight(float Value)
 {
-	if ( (Controller != nullptr) && (Value != 0.0f) )
+	if ( (Controller != nullptr) && (Value != 0.0f) && CanMove())
 	{
 		// find out which way is right
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -196,4 +200,14 @@ void AGASReferenceCharacter::MoveRight(float Value)
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
 	}
+}
+
+bool AGASReferenceCharacter::HasAnyViewBlockingTags() const
+{
+	if (AbilitySystemComponent)
+	{
+		return AbilitySystemComponent->HasAnyMatchingGameplayTags(ViewBlockingTags);
+	}
+
+	return false;
 }

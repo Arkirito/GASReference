@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
+#include "GameplayTagContainer.h"
 #include "GASReferenceCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -25,7 +26,7 @@ class AGASReferenceCharacter : public ACharacter, public IAbilitySystemInterface
 	class UGASR_AbilitySystemComponent* AbilitySystemComponent;
 
 	UPROPERTY()
-	class UGASR_AttributeSet* AttributeSet;
+	const class UGASR_AttributeSet* AttributeSet;
 
 public:	
 	AGASReferenceCharacter();
@@ -52,10 +53,18 @@ public:
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "GAS")
 	TArray<TSubclassOf<class UGameplayAbility>> DefaultAbilities;
 
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "GAS")
+	FGameplayTagContainer MovementBlockingTags;
+
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "GAS")
+	FGameplayTagContainer ViewBlockingTags;
+
 protected:
 
 	/** Resets HMD orientation in VR. */
 	void OnResetVR();
+
+	bool CanMove() const;
 
 	/** Called for forwards/backward input */
 	void MoveForward(float Value);
@@ -63,6 +72,7 @@ protected:
 	/** Called for side to side input */
 	void MoveRight(float Value);
 
+	bool HasAnyViewBlockingTags() const;
 	/** 
 	 * Called via input to turn at a given rate. 
 	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
@@ -74,12 +84,6 @@ protected:
 	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
 	 */
 	void LookUpAtRate(float Rate);
-
-	/** Handler for when a touch input begins. */
-	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
-
-	/** Handler for when a touch input stops. */
-	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
 protected:
 	// APawn interface

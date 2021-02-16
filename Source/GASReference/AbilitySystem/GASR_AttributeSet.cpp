@@ -3,12 +3,25 @@
 
 #include "GASR_AttributeSet.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GASR_AttributeSet.h"
 
 
 UGASR_AttributeSet::UGASR_AttributeSet()
 {
 
+}
+
+void UGASR_AttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
+{
+	if (Attribute == GetMaxMovementSpeedAttribute())
+	{
+		if (ACharacter* OwningCharacter = Cast<ACharacter>(GetOwningActor()))
+		{
+			OwningCharacter->GetCharacterMovement()->MaxWalkSpeed = NewValue;
+		}
+	}
 }
 
 void UGASR_AttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -33,4 +46,9 @@ void UGASR_AttributeSet::OnRep_Stamina(const FGameplayAttributeData& OldStamina)
 void UGASR_AttributeSet::OnRep_Mana(const FGameplayAttributeData& OldMana)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UGASR_AttributeSet, Mana, OldMana);
+}
+
+void UGASR_AttributeSet::OnRep_MaxMovementSpeed(const FGameplayAttributeData& OldMaxMovementSpeed)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UGASR_AttributeSet, MaxMovementSpeed, OldMaxMovementSpeed);
 }
