@@ -72,6 +72,9 @@ public:
 
 	void Die();
 
+	UFUNCTION(BlueprintCallable)
+	bool IsAlive() const;
+
 protected:
 
 	/** Resets HMD orientation in VR. */

@@ -75,9 +75,9 @@ void AGASReferenceCharacter::SetupPlayerInputComponent(class UInputComponent* Pl
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
 	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
 	PlayerInputComponent->BindAxis("Turn", this, &AGASReferenceCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("TurnRate", this, &AGASReferenceCharacter::TurnAtRate);
+	//PlayerInputComponent->BindAxis("TurnRate", this, &AGASReferenceCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUp", this, &AGASReferenceCharacter::LookUpAtRate);
-	PlayerInputComponent->BindAxis("LookUpRate", this, &AGASReferenceCharacter::LookUpAtRate);
+	//PlayerInputComponent->BindAxis("LookUpRate", this, &AGASReferenceCharacter::LookUpAtRate);
 
 	// VR headset functionality
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AGASReferenceCharacter::OnResetVR);
@@ -91,7 +91,7 @@ UAbilitySystemComponent* AGASReferenceCharacter::GetAbilitySystemComponent() con
 
 void AGASReferenceCharacter::InitializeAttributes()
 {
-	if (AbilitySystemComponent && DefaultAttributeSet)
+	if (AbilitySystemComponent && DefaultAttributeSet && AttributeSet)
 	{
 		FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
 		EffectContext.AddSourceObject(this);
@@ -139,7 +139,7 @@ void AGASReferenceCharacter::OnRep_PlayerState()
 
 void AGASReferenceCharacter::OnGameplayEffectAppliedToSelf(UAbilitySystemComponent* InAbilitySystemComponent, const FGameplayEffectSpec& EffectSpec, FActiveGameplayEffectHandle EffectHandle)
 {
-	if (AttributeSet->GetHealth() <= 0)
+	if (AttributeSet && AttributeSet->GetHealth() <= 0)
 	{
 		Die();
 	}
@@ -193,6 +193,11 @@ void AGASReferenceCharacter::Die()
 	GetMesh()->SetSimulatePhysics(true);
 	GetMesh()->WakeAllRigidBodies();
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+bool AGASReferenceCharacter::IsAlive() const
+{
+	return AttributeSet ? AttributeSet->GetHealth() > 0 : true;
 }
 
 void AGASReferenceCharacter::OnResetVR()
