@@ -13,6 +13,11 @@
 #include "AbilitySystem/GASR_GameplayAbility.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
+#include "AbilitySystemBlueprintLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Engine/CollisionProfile.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "AIController.h"
 #include <GameplayEffectTypes.h>
 
 //////////////////////////////////////////////////////////////////////////
@@ -93,15 +98,7 @@ void AGASReferenceCharacter::InitializeAttributes()
 {
 	if (AbilitySystemComponent && DefaultAttributeSet && AttributeSet)
 	{
-		FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
-		EffectContext.AddSourceObject(this);
-
-		FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultAttributeSet, 1, EffectContext);
-
-		if (SpecHandle.IsValid())
-		{
-			FActiveGameplayEffectHandle GEHandle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-		}
+		ApplyAffectToTarget(DefaultAttributeSet, this);
 
 		GetCharacterMovement()->MaxWalkSpeed = AttributeSet->GetMaxMovementSpeed();
 	}
@@ -178,13 +175,52 @@ void AGASReferenceCharacter::Shoot()
 
 		if (WeaponHitResult.Actor.Get())
 		{
-			ApplyDamageToTarget(WeaponHitResult.GetActor());
+			if (UAbilitySystemComponent* AbilityComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(WeaponHitResult.GetActor()))
+			{
+				ApplyAffectToTarget(GunshotDamageEffect, WeaponHitResult.GetActor());
+			}
 		}
 	}
 	else
 	{
 		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + WeaponHitDirection * 2000, FColor::Yellow, false, 1, 0, 3);
 	}
+}
+
+void AGASReferenceCharacter::MeleeAttack()
+{
+	/*TArray<TEnumAsByte<EObjectTypeQuery>> Types;
+	TArray<AActor*> ActorsToIgnore;
+	TArray<AActor*> OutActors;
+
+	Types.Add(UCollisionProfile::Get()->ConvertToObjectType(ECollisionChannel::ECC_Pawn));
+	
+	ActorsToIgnore.Add(this);
+
+	const FVector TraceLocation = GetMesh()->GetBoneLocation(FName(TEXT("RightHand")));
+
+	UKismetSystemLibrary::SphereOverlapActors(this, TraceLocation, MeleeAttackRadius, Types, AGASReferenceCharacter::GetClass(), ActorsToIgnore, OutActors);
+
+	DrawDebugSphere(GetWorld(), TraceLocation, MeleeAttackRadius, 16, FColor::Red, false, 0.4, 0, 3);
+
+	for (auto Actor : OutActors)
+	{
+		if (AGASReferenceCharacter* GASCharacter = Cast<AGASReferenceCharacter>(Actor))
+		{
+			if (GASCharacter->IsPlayerControlled())
+			{
+				if (ApplyAffectToTarget(MeleeDamageEffect, GASCharacter))
+				{
+					return;
+				}
+			}
+		}
+	}*/
+
+	AAIController* AIController = Cast<AAIController>(GetController());
+	UBlackboardComponent* Blackboard = AIController ? AIController->GetBlackboardComponent() : nullptr;
+	AActor* Target = Blackboard ? Cast<AActor>(Blackboard->GetValueAsObject(FName(TEXT("Target")))) : nullptr;
+	ApplyAffectToTarget(MeleeDamageEffect, Target);
 }
 
 void AGASReferenceCharacter::Die()
@@ -198,6 +234,25 @@ void AGASReferenceCharacter::Die()
 bool AGASReferenceCharacter::IsAlive() const
 {
 	return AttributeSet ? AttributeSet->GetHealth() > 0 : true;
+}
+
+bool AGASReferenceCharacter::ApplyAffectToTarget(TSubclassOf<UGameplayEffect> Effect, AActor* Target)
+{
+	if (!Effect.Get()) return false;
+
+	if (UAbilitySystemComponent* AbilityComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target))
+	{
+		FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+		EffectContext.AddSourceObject(this);
+
+		FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(Effect, 1, EffectContext);
+
+		AbilityComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+
+		return true;
+	}
+
+	return false;
 }
 
 void AGASReferenceCharacter::OnResetVR()

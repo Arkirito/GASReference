@@ -67,6 +67,9 @@ public:
 	UFUNCTION()
 	void Shoot();
 
+	UFUNCTION()
+	void MeleeAttack();
+
 	UFUNCTION(BlueprintImplementableEvent)
 	void ApplyDamageToTarget(AActor* Target);
 
@@ -74,6 +77,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool IsAlive() const;
+
+	bool ApplyAffectToTarget(TSubclassOf<UGameplayEffect> Effect, AActor* Target);
 
 protected:
 
@@ -101,6 +106,9 @@ protected:
 	 */
 	void LookUpAtRate(float Rate);
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	float MeleeAttackRadius = 250;
+
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -111,5 +119,22 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+public:
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS | Abilities | Effects")
+	TSubclassOf<UGameplayEffect> GunshotDamageEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS | Abilities | Effects")
+	TSubclassOf<UGameplayEffect> MeleeDamageEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Montages")
+	UAnimMontage* GunshotMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Montages")
+	UAnimMontage* MeleeAttackMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Montages")
+	UAnimMontage* HitReactMontage;
 };
 
