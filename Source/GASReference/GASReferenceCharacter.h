@@ -33,6 +33,8 @@ class AGASReferenceCharacter : public ACharacter, public IAbilitySystemInterface
 public:	
 	AGASReferenceCharacter();
 
+	virtual void BeginPlay() override;
+
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseTurnRate;
@@ -107,7 +109,9 @@ protected:
 	void LookUpAtRate(float Rate);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
-	float MeleeAttackRadius = 250;
+	float MeleeAttackRadius = 200;
+
+	float MeleeAttackRadiusSquared;
 
 protected:
 	// APawn interface

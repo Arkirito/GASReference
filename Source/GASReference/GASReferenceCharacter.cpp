@@ -65,6 +65,13 @@ AGASReferenceCharacter::AGASReferenceCharacter()
 	AttributeSet = CreateDefaultSubobject<UGASR_AttributeSet>("AttributeSet");
 }
 
+void AGASReferenceCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	MeleeAttackRadiusSquared = MeleeAttackRadius * MeleeAttackRadius;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Input
 
@@ -220,7 +227,11 @@ void AGASReferenceCharacter::MeleeAttack()
 	AAIController* AIController = Cast<AAIController>(GetController());
 	UBlackboardComponent* Blackboard = AIController ? AIController->GetBlackboardComponent() : nullptr;
 	AActor* Target = Blackboard ? Cast<AActor>(Blackboard->GetValueAsObject(FName(TEXT("Target")))) : nullptr;
-	ApplyAffectToTarget(MeleeDamageEffect, Target);
+
+	if (Target && (FVector::DistSquared(GetActorLocation(), Target->GetActorLocation()) < MeleeAttackRadiusSquared))
+	{
+		ApplyAffectToTarget(MeleeDamageEffect, Target);
+	}
 }
 
 void AGASReferenceCharacter::Die()
