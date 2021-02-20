@@ -59,7 +59,7 @@ AGASReferenceCharacter::AGASReferenceCharacter()
 
 	AbilitySystemComponent = CreateDefaultSubobject<UGASR_AbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
-	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 	AbilitySystemComponent->OnGameplayEffectAppliedDelegateToSelf.AddUObject(this, &AGASReferenceCharacter::OnGameplayEffectAppliedToSelf);
 
 	AttributeSet = CreateDefaultSubobject<UGASR_AttributeSet>("AttributeSet");
@@ -190,40 +190,12 @@ void AGASReferenceCharacter::Shoot()
 	}
 	else
 	{
-		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + WeaponHitDirection * 2000, FColor::Yellow, false, 1, 0, 3);
+		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + WeaponHitDirection * 1000, FColor::Yellow, false, 1, 0, 3);
 	}
 }
 
 void AGASReferenceCharacter::MeleeAttack()
 {
-	/*TArray<TEnumAsByte<EObjectTypeQuery>> Types;
-	TArray<AActor*> ActorsToIgnore;
-	TArray<AActor*> OutActors;
-
-	Types.Add(UCollisionProfile::Get()->ConvertToObjectType(ECollisionChannel::ECC_Pawn));
-	
-	ActorsToIgnore.Add(this);
-
-	const FVector TraceLocation = GetMesh()->GetBoneLocation(FName(TEXT("RightHand")));
-
-	UKismetSystemLibrary::SphereOverlapActors(this, TraceLocation, MeleeAttackRadius, Types, AGASReferenceCharacter::GetClass(), ActorsToIgnore, OutActors);
-
-	DrawDebugSphere(GetWorld(), TraceLocation, MeleeAttackRadius, 16, FColor::Red, false, 0.4, 0, 3);
-
-	for (auto Actor : OutActors)
-	{
-		if (AGASReferenceCharacter* GASCharacter = Cast<AGASReferenceCharacter>(Actor))
-		{
-			if (GASCharacter->IsPlayerControlled())
-			{
-				if (ApplyAffectToTarget(MeleeDamageEffect, GASCharacter))
-				{
-					return;
-				}
-			}
-		}
-	}*/
-
 	AAIController* AIController = Cast<AAIController>(GetController());
 	UBlackboardComponent* Blackboard = AIController ? AIController->GetBlackboardComponent() : nullptr;
 	AActor* Target = Blackboard ? Cast<AActor>(Blackboard->GetValueAsObject(FName(TEXT("Target")))) : nullptr;
@@ -258,7 +230,7 @@ bool AGASReferenceCharacter::ApplyAffectToTarget(TSubclassOf<UGameplayEffect> Ef
 
 		FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(Effect, 1, EffectContext);
 
-		AbilityComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		AbilityComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get(), FPredictionKey::CreateNewPredictionKey(AbilitySystemComponent));
 
 		return true;
 	}
