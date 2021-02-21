@@ -39,6 +39,7 @@ void UGASR_AttributeSet::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 	DOREPLIFETIME_CONDITION_NOTIFY(UGASR_AttributeSet, Health, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UGASR_AttributeSet, Stamina, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UGASR_AttributeSet, Mana, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UGASR_AttributeSet, MaxMovementSpeed, COND_None, REPNOTIFY_Always);
 }
 
 void UGASR_AttributeSet::OnRep_Health(const FGameplayAttributeData& OldHealth)

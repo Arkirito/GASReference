@@ -75,6 +75,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void ApplyDamageToTarget(AActor* Target);
 
+	UFUNCTION(BlueprintCallable)
 	void Die();
 
 	UFUNCTION(BlueprintCallable)
@@ -124,6 +125,14 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
+protected:
+
+	FDelegateHandle HealthChangedDelegateHandle;
+	FDelegateHandle MaxWalkSpeedChangedDelegateHandle;
+
+	void OnHealthChanged(const FOnAttributeChangeData& Data);
+	void OnMaxWalkSpeedChanged(const FOnAttributeChangeData& Data);
+
 public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS | Abilities | Effects")
@@ -131,6 +140,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS | Abilities | Effects")
 	TSubclassOf<UGameplayEffect> MeleeDamageEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS | Abilities | Effects")
+	TSubclassOf<UGameplayEffect> DeathEffect;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Montages")
 	UAnimMontage* GunshotMontage;

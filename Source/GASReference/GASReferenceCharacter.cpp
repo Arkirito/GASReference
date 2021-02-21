@@ -63,6 +63,9 @@ AGASReferenceCharacter::AGASReferenceCharacter()
 	AbilitySystemComponent->OnGameplayEffectAppliedDelegateToSelf.AddUObject(this, &AGASReferenceCharacter::OnGameplayEffectAppliedToSelf);
 
 	AttributeSet = CreateDefaultSubobject<UGASR_AttributeSet>("AttributeSet");
+
+	HealthChangedDelegateHandle = AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetHealthAttribute()).AddUObject(this, &AGASReferenceCharacter::OnHealthChanged);
+	MaxWalkSpeedChangedDelegateHandle = AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(AttributeSet->GetMaxMovementSpeedAttribute()).AddUObject(this, &AGASReferenceCharacter::OnMaxWalkSpeedChanged);
 }
 
 void AGASReferenceCharacter::BeginPlay()
@@ -95,6 +98,21 @@ void AGASReferenceCharacter::SetupPlayerInputComponent(class UInputComponent* Pl
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AGASReferenceCharacter::OnResetVR);
 }
 
+void AGASReferenceCharacter::OnHealthChanged(const FOnAttributeChangeData& Data)
+{
+	DrawDebugString(GetWorld(), GetActorLocation() + FVector::UpVector * 100, FString::Printf(TEXT("Health: %f"), Data.NewValue), nullptr, FColor::White, 5);
+
+	if (Data.OldValue > 0 && Data.NewValue <= 0)
+	{
+		Die();
+	}
+}
+
+void AGASReferenceCharacter::OnMaxWalkSpeedChanged(const FOnAttributeChangeData& Data)
+{
+	GetCharacterMovement()->MaxWalkSpeed = Data.NewValue;
+}
+
 
 UAbilitySystemComponent* AGASReferenceCharacter::GetAbilitySystemComponent() const
 {
@@ -103,7 +121,7 @@ UAbilitySystemComponent* AGASReferenceCharacter::GetAbilitySystemComponent() con
 
 void AGASReferenceCharacter::InitializeAttributes()
 {
-	if (AbilitySystemComponent && DefaultAttributeSet && AttributeSet)
+	if (GetLocalRole() == ROLE_Authority && DefaultAttributeSet && AttributeSet)
 	{
 		ApplyAffectToTarget(DefaultAttributeSet, this);
 
@@ -143,10 +161,7 @@ void AGASReferenceCharacter::OnRep_PlayerState()
 
 void AGASReferenceCharacter::OnGameplayEffectAppliedToSelf(UAbilitySystemComponent* InAbilitySystemComponent, const FGameplayEffectSpec& EffectSpec, FActiveGameplayEffectHandle EffectHandle)
 {
-	if (AttributeSet && AttributeSet->GetHealth() <= 0)
-	{
-		Die();
-	}
+	
 }
 
 void AGASReferenceCharacter::Shoot()
@@ -154,7 +169,9 @@ void AGASReferenceCharacter::Shoot()
 	FVector ViewPoint;
 	FRotator ViewRotation;
 	UGameplayStatics::GetPlayerCameraManager(this, 0)->GetCameraViewPoint(ViewPoint, ViewRotation);
-	FVector Direction = ViewRotation.Vector();
+	//FVector Direction = ViewRotation.Vector();
+	FVector Direction = FollowCamera->GetForwardVector();
+	ViewPoint = FollowCamera->GetComponentLocation();
 
 	FHitResult HitResult;
 	GetWorld()->LineTraceSingleByChannel(HitResult, ViewPoint, ViewPoint + Direction * 10000, ECollisionChannel::ECC_Camera);
@@ -229,8 +246,10 @@ bool AGASReferenceCharacter::ApplyAffectToTarget(TSubclassOf<UGameplayEffect> Ef
 		EffectContext.AddSourceObject(this);
 
 		FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(Effect, 1, EffectContext);
-
-		AbilityComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get(), FPredictionKey::CreateNewPredictionKey(AbilitySystemComponent));
+		if (SpecHandle.IsValid())
+		{
+			FActiveGameplayEffectHandle ActiveGEHandle = AbilityComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		}
 
 		return true;
 	}
