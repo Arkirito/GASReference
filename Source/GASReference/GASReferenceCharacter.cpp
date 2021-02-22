@@ -100,7 +100,7 @@ void AGASReferenceCharacter::SetupPlayerInputComponent(class UInputComponent* Pl
 
 void AGASReferenceCharacter::OnHealthChanged(const FOnAttributeChangeData& Data)
 {
-	DrawDebugString(GetWorld(), GetActorLocation() + FVector::UpVector * 100, FString::Printf(TEXT("Health: %f"), Data.NewValue), nullptr, FColor::White, 5);
+	//DrawDebugString(GetWorld(), GetActorLocation() + FVector::UpVector * 100, FString::Printf(TEXT("Health: %f"), Data.NewValue), nullptr, FColor::White, 5);
 
 	if (Data.OldValue > 0 && Data.NewValue <= 0)
 	{
@@ -110,6 +110,8 @@ void AGASReferenceCharacter::OnHealthChanged(const FOnAttributeChangeData& Data)
 
 void AGASReferenceCharacter::OnMaxWalkSpeedChanged(const FOnAttributeChangeData& Data)
 {
+	DrawDebugString(GetWorld(), GetActorLocation() + FVector::UpVector * 100, FString::Printf(TEXT("WalkSpeed: Old %f New %f"), Data.OldValue, Data.NewValue), nullptr, FColor::White, 5);
+
 	GetCharacterMovement()->MaxWalkSpeed = Data.NewValue;
 }
 

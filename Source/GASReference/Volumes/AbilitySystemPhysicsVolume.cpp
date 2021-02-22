@@ -20,8 +20,14 @@ void AAbilitySystemPhysicsVolume::ActorEnteredVolume(AActor* Other)
 	{
 		for (auto GameplayEffect : GameplayEffectsToApply)
 		{
-			FGameplayEffectContextHandle ContextHandle;
-			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(FGameplayEffectSpec(NewObject<UGameplayEffect>(this, GameplayEffect), ContextHandle));
+			FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+			EffectContext.AddSourceObject(this);
+
+			FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(GameplayEffect, 1, EffectContext);
+			if (SpecHandle.IsValid())
+			{
+				FActiveGameplayEffectHandle ActiveGEHandle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+			}
 		}
 	}
 }
@@ -34,7 +40,6 @@ void AAbilitySystemPhysicsVolume::ActorLeavingVolume(AActor* Other)
 	{
 		for (auto GameplayEffect : GameplayEffectsToApply)
 		{
-			FGameplayEffectContextHandle ContextHandle;
 			AbilitySystemComponent->RemoveActiveGameplayEffectBySourceEffect(GameplayEffect, nullptr);
 		}
 	}
